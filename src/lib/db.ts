@@ -75,7 +75,7 @@ export async function saveTrade(trade: Trade): Promise<Trade> {
     ]
   });
   
-  return { ...trade, id: result.lastInsertRowid as number };
+  return { ...trade, id: Number(result.lastInsertRowid ?? 0) };
 }
 
 export async function getTrades(filters?: {
@@ -110,7 +110,7 @@ export async function getTrades(filters?: {
   query += ' ORDER BY timestamp DESC';
   
   const result = await db.execute({ sql: query, args: params });
-  return result.rows as Trade[];
+  return result.rows as unknown as Trade[];
 }
 
 export async function updateTrade(id: number, updates: Partial<Trade>): Promise<void> {

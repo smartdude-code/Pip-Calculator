@@ -350,10 +350,12 @@ export default function TradeLog() {
                         {trade.reward_usd ? `$${trade.reward_usd.toFixed(2)}` : '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        {editingTrade?.id === trade.id ? (
+                        {editingTrade?.id === trade.id ? (() => {
+                          const currentTrade = editingTrade!;
+                          return (
                           <select
-                            value={editingTrade.outcome || ''}
-                            onChange={(e) => setEditingTrade({ ...editingTrade, outcome: e.target.value as any })}
+                            value={currentTrade.outcome || ''}
+                            onChange={(e) => setEditingTrade({ ...currentTrade, outcome: e.target.value as any })}
                             className="px-2 py-1 border border-gray-300 rounded text-sm"
                           >
                             <option value="">Select</option>
@@ -362,7 +364,8 @@ export default function TradeLog() {
                             <option value="breakeven">Breakeven</option>
                             <option value="open">Open</option>
                           </select>
-                        ) : (
+                          );
+                        })() : (
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             !trade.outcome ? 'bg-gray-100 text-gray-800' :
                             trade.outcome === 'win' ? 'bg-green-100 text-green-800' :
@@ -384,7 +387,7 @@ export default function TradeLog() {
                         {editingTrade?.id === trade.id ? (
                           <div className="flex gap-1">
                             <button
-                              onClick={() => handleUpdateTrade(editingTrade)}
+                              onClick={() => editingTrade && handleUpdateTrade(editingTrade)}
                               className="text-green-600 hover:text-green-800"
                             >
                               Save

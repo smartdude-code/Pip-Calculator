@@ -612,10 +612,12 @@ export default function Home() {
                         <td className="py-2 px-2 text-gray-300">${trade.risk_usd.toFixed(2)}</td>
                         <td className="py-2 px-2 text-gray-300">{trade.tp_price ? trade.tp_price.toFixed(4) : '-'}</td>
                         <td className="py-2 px-2">
-                          {editingTrade?.id === trade.id ? (
+                          {editingTrade?.id === trade.id ? (() => {
+                            const currentTrade = editingTrade!;
+                            return (
                             <select
-                              value={editingTrade.outcome || ''}
-                              onChange={(e) => setEditingTrade({ ...editingTrade, outcome: e.target.value as any })}
+                              value={currentTrade.outcome || ''}
+                              onChange={(e) => setEditingTrade({ ...currentTrade, outcome: e.target.value as any })}
                               className="px-2 py-1 bg-slate-700 border border-slate-500 rounded text-xs text-white"
                             >
                               <option value="">Select</option>
@@ -624,7 +626,8 @@ export default function Home() {
                               <option value="breakeven">Breakeven</option>
                               <option value="open">Open</option>
                             </select>
-                          ) : (
+                            );
+                          })() : (
                             <span 
                               className={`px-2 py-1 rounded text-xs cursor-pointer hover:opacity-80 ${
                                 !trade.outcome ? 'bg-slate-600 text-gray-300' :
@@ -644,7 +647,7 @@ export default function Home() {
                           {editingTrade?.id === trade.id ? (
                             <div className="flex gap-1">
                               <button
-                                onClick={() => handleUpdateTrade(editingTrade)}
+                                onClick={() => editingTrade && handleUpdateTrade(editingTrade)}
                                 className="text-green-400 hover:text-green-300 text-xs"
                               >
                                 Save
