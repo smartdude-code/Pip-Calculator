@@ -13,8 +13,8 @@ const db = createClient({
   authToken: tursoAuthToken,
 });
 
-// Initialize database schema
-db.execute(`
+// Initialize database schema once before serving any database operation.
+const schemaReady = db.execute(`
   CREATE TABLE IF NOT EXISTS trades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -53,6 +53,7 @@ export interface Trade {
 }
 
 export async function saveTrade(trade: Trade): Promise<Trade> {
+  await schemaReady;
   const result = await db.execute({
     sql: `
       INSERT INTO trades (pair, direction, entry_price, stop_loss_price, lot_size, risk_usd, tp_price, reward_usd, notes, outcome, close_price, rate_used, rate_used_display)
@@ -84,6 +85,7 @@ export async function getTrades(filters?: {
   startDate?: string;
   endDate?: string;
 }): Promise<Trade[]> {
+  await schemaReady;
   let query = 'SELECT * FROM trades WHERE 1=1';
   const params: any[] = [];
   
@@ -114,6 +116,7 @@ export async function getTrades(filters?: {
 }
 
 export async function updateTrade(id: number, updates: Partial<Trade>): Promise<void> {
+  await schemaReady;
   const fields = Object.keys(updates).filter(key => key !== 'id');
   if (fields.length === 0) return;
   
@@ -131,6 +134,7 @@ export async function getStats(filters?: {
   startDate?: string;
   endDate?: string;
 }) {
+  await schemaReady;
   let whereClause = 'WHERE 1=1';
   const params: any[] = [];
   
