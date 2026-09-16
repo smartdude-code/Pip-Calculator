@@ -1,4 +1,5 @@
 import { createClient } from '@libsql/client';
+import { calculateTradeStats, StatsFilters } from './stats';
 
 // Initialize Turso client
 const tursoUrl = process.env.TURSO_DATABASE_URL;
@@ -135,71 +136,8 @@ export async function getStats(filters?: {
   endDate?: string;
 }) {
   await schemaReady;
-  let whereClause = 'WHERE 1=1';
-  const params: any[] = [];
-  
-  if (filters?.pair) {
-    whereClause += ' AND pair = ?';
-    params.push(filters.pair);
-  }
-  
-  if (filters?.startDate) {
-    whereClause += ' AND timestamp >= ?';
-    params.push(filters.startDate);
-  }
-  
-  if (filters?.endDate) {
-    whereClause += ' AND timestamp <= ?';
-    params.push(filters.endDate);
-  }
-  
-  const totalTrades = await db.execute({
-    sql: `SELECT COUNT(*) as count FROM trades ${whereClause}`,
-    args: params
-  });
-  
-  const completedTrades = await db.execute({
-    sql: `SELECT COUNT(*) as count FROM trades ${whereClause} AND outcome IN ('win', 'loss', 'breakeven')`,
-    args: params
-  });
-  
-  const wins = await db.execute({
-    sql: `SELECT COUNT(*) as count FROM trades ${whereClause} AND outcome = 'win'`,
-    args: params
-  });
-  
-  const totalRisked = await db.execute({
-    sql: `SELECT SUM(risk_usd) as total FROM trades ${whereClause}`,
-    args: params
-  });
-  
-  const totalResult = await db.execute({
-    sql: `SELECT 
-      SUM(CASE WHEN outcome = 'win' THEN reward_usd ELSE 0 END) as wins,
-      SUM(CASE WHEN outcome = 'loss' THEN -risk_usd ELSE 0 END) as losses
-      FROM trades ${whereClause}`,
-    args: params
-  });
-  
-  const totalTradesCount = (totalTrades.rows[0] as any)?.count || 0;
-  const completedTradesCount = (completedTrades.rows[0] as any)?.count || 0;
-  const winsCount = (wins.rows[0] as any)?.count || 0;
-  const totalRiskedValue = (totalRisked.rows[0] as any)?.total || 0;
-  const totalResultWins = (totalResult.rows[0] as any)?.wins || 0;
-  const totalResultLosses = (totalResult.rows[0] as any)?.losses || 0;
-  
-  const winRate = completedTradesCount > 0 ? (winsCount / completedTradesCount) * 100 : 0;
-  
-  return {
-    totalTrades: totalTradesCount,
-    completedTrades: completedTradesCount,
-    wins: winsCount,
-    winRate: winRate.toFixed(1),
-    totalRisked: totalRiskedValue,
-    totalWins: totalResultWins,
-    totalLosses: totalResultLosses,
-    netResult: totalResultWins + totalResultLosses
-  };
+  const trades = await getTrades(filters);
+  return calculateTradeStats(trades, filters as StatsFilters);
 }
 
 export default db;

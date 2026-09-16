@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { calculatePositionSize, INSTRUMENTS, CalculatorInput, CalculatorOutput } from '@/lib/calculator';
 import { Trade } from '@/lib/db';
+import { calculateTradeStats } from '@/lib/stats';
 
 export default function Home() {
   const [formData, setFormData] = useState<CalculatorInput>({
@@ -55,47 +56,7 @@ export default function Home() {
   };
 
   const calculateStats = () => {
-    let filteredTrades = [...trades];
-
-    if (filters.pair) {
-      filteredTrades = filteredTrades.filter(t => t.pair === filters.pair);
-    }
-
-    if (filters.outcome) {
-      filteredTrades = filteredTrades.filter(t => t.outcome === filters.outcome);
-    }
-
-    if (filters.startDate) {
-      filteredTrades = filteredTrades.filter(t => t.timestamp && t.timestamp >= filters.startDate);
-    }
-
-    if (filters.endDate) {
-      filteredTrades = filteredTrades.filter(t => t.timestamp && t.timestamp <= filters.endDate);
-    }
-
-    const completedTrades = filteredTrades.filter(t => t.outcome && t.outcome !== 'open');
-    const wins = completedTrades.filter(t => t.outcome === 'win').length;
-    const totalRisked = filteredTrades.reduce((sum, t) => sum + t.risk_usd, 0);
-    const totalResult = filteredTrades.reduce((sum, t) => {
-      if (t.outcome === 'win') return sum + (t.reward_usd || 0);
-      if (t.outcome === 'loss') return sum - t.risk_usd;
-      return sum;
-    }, 0);
-
-    const winRate = completedTrades.length > 0 ? (wins / completedTrades.length) * 100 : 0;
-    const avgR = completedTrades.length > 0 
-      ? completedTrades.reduce((sum, t) => sum + (t.reward_usd || 0) / t.risk_usd, 0) / completedTrades.length 
-      : 0;
-
-    setStats({
-      winRate: winRate.toFixed(1),
-      totalTrades: filteredTrades.length,
-      completedTrades: completedTrades.length,
-      wins,
-      totalRisked,
-      totalResult,
-      avgR: avgR.toFixed(2),
-    });
+    setStats(calculateTradeStats(trades, filters));
   };
 
   const handleCalculate = async () => {
