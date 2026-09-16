@@ -34,16 +34,31 @@ export default function Home() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [recentCalculations, setRecentCalculations] = useState<any[]>([]);
+  const [showRecent, setShowRecent] = useState(true);
 
   const instrument = INSTRUMENTS.find(i => i.pair === formData.pair);
 
   useEffect(() => {
     loadTrades();
+
+    try {
+      const saved = localStorage.getItem('recent-calculations');
+      if (saved) {
+        setRecentCalculations(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Unable to load recent calculations:', error);
+    }
   }, []);
 
   useEffect(() => {
     calculateStats();
   }, [trades, filters]);
+
+  useEffect(() => {
+    localStorage.setItem('recent-calculations', JSON.stringify(recentCalculations));
+  }, [recentCalculations]);
 
   const loadTrades = async () => {
     try {
@@ -57,6 +72,22 @@ export default function Home() {
 
   const calculateStats = () => {
     setStats(calculateTradeStats(trades, filters));
+  };
+
+  const recordRecentCalculation = (calculationResult: CalculatorOutput) => {
+    const snapshot = {
+      pair: formData.pair,
+      direction: formData.direction,
+      entryPrice: formData.entryPrice,
+      stopLossPrice: formData.stopLossPrice,
+      riskUsd: formData.riskUsd,
+      actualRiskUsd: calculationResult.actualRiskUsd,
+      recommendedLotSize: calculationResult.recommendedLotSize,
+      suggestedTpPrice: calculationResult.suggestedTpPrice,
+      timestamp: new Date().toISOString(),
+    };
+
+    setRecentCalculations((current) => [snapshot, ...current].slice(0, 8));
   };
 
   const handleCalculate = async () => {
@@ -83,6 +114,7 @@ export default function Home() {
     try {
       const calculationResult = await calculatePositionSize(formData);
       setResult(calculationResult);
+      recordRecentCalculation(calculationResult);
       setSaved(false);
     } catch (error) {
       console.error('Calculation error:', error);
@@ -136,12 +168,15 @@ export default function Home() {
 
   const handleUpdateTrade = async (trade: Trade) => {
     try {
+      const payload: Partial<Trade> = {
+        outcome: trade.outcome,
+        breakeven_result_usd: trade.outcome === 'breakeven' ? (trade.breakeven_result_usd ?? 0) : null,
+      };
+
       const response = await fetch(`/api/trades/${trade.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          outcome: trade.outcome,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -347,6 +382,42 @@ export default function Home() {
               {error && (
                 <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-2 rounded-md text-sm">
                   {error}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 bg-slate-700 rounded-lg p-4 border border-slate-500">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h3 className="text-lg font-semibold text-sky-400">Recent</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowRecent(!showRecent)}
+                  className="px-3 py-1 rounded bg-slate-600 text-white text-sm hover:bg-slate-500"
+                >
+                  {showRecent ? 'Hide' : 'Show'}
+                </button>
+              </div>
+
+              {showRecent && (
+                <div className="space-y-2">
+                  {recentCalculations.length === 0 ? (
+                    <p className="text-sm text-gray-400">No recent calculations yet.</p>
+                  ) : (
+                    recentCalculations.map((item, index) => (
+                      <div key={`${item.timestamp}-${index}`} className="rounded border border-slate-500 bg-slate-800 p-2 text-sm">
+                        <div className="flex justify-between text-gray-300">
+                          <span>{item.pair}</span>
+                          <span>{new Date(item.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                        </div>
+                        <div className="mt-1 text-gray-400 text-xs">
+                          Entry {item.entryPrice.toFixed(4)} • SL {item.stopLossPrice.toFixed(4)} • Risk ${item.riskUsd.toFixed(2)}
+                        </div>
+                        <div className="mt-1 text-xs text-amber-300">
+                          Lot {item.recommendedLotSize.toFixed(2)} • Actual Risk ${item.actualRiskUsd.toFixed(2)}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -576,17 +647,73 @@ export default function Home() {
                           {editingTrade?.id === trade.id ? (() => {
                             const currentTrade = editingTrade!;
                             return (
-                            <select
-                              value={currentTrade.outcome || ''}
-                              onChange={(e) => setEditingTrade({ ...currentTrade, outcome: e.target.value as any })}
-                              className="px-2 py-1 bg-slate-700 border border-slate-500 rounded text-xs text-white"
-                            >
-                              <option value="">Select</option>
-                              <option value="win">Win</option>
-                              <option value="loss">Loss</option>
-                              <option value="breakeven">Breakeven</option>
-                              <option value="open">Open</option>
-                            </select>
+                              <div className="space-y-2">
+                                <select
+                                  value={currentTrade.outcome || ''}
+                                  onChange={(e) => {
+                                    const nextOutcome = e.target.value as Trade['outcome'];
+                                    setEditingTrade({
+                                      ...currentTrade,
+                                      outcome: nextOutcome,
+                                      breakeven_result_usd: nextOutcome === 'breakeven' ? currentTrade.breakeven_result_usd ?? 0 : null,
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 bg-slate-700 border border-slate-500 rounded text-xs text-white"
+                                >
+                                  <option value="">Select</option>
+                                  <option value="win">Win</option>
+                                  <option value="loss">Loss</option>
+                                  <option value="breakeven">Breakeven</option>
+                                  <option value="open">Open</option>
+                                </select>
+
+                                {currentTrade.outcome === 'breakeven' && (
+                                  <div className="space-y-2 rounded border border-yellow-500/50 bg-slate-800 p-2">
+                                    <div className="flex gap-2 text-[10px] font-medium uppercase tracking-wide text-gray-300">
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingTrade({
+                                          ...currentTrade,
+                                          breakeven_result_usd: Math.abs(currentTrade.breakeven_result_usd ?? 0),
+                                        })}
+                                        className={`flex-1 rounded px-2 py-1 ${
+                                          (currentTrade.breakeven_result_usd ?? 0) >= 0 ? 'bg-green-700 text-green-100' : 'bg-slate-700 text-gray-300'
+                                        }`}
+                                      >
+                                        Closed at profit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingTrade({
+                                          ...currentTrade,
+                                          breakeven_result_usd: -Math.abs(currentTrade.breakeven_result_usd ?? 0),
+                                        })}
+                                        className={`flex-1 rounded px-2 py-1 ${
+                                          (currentTrade.breakeven_result_usd ?? 0) < 0 ? 'bg-red-700 text-red-100' : 'bg-slate-700 text-gray-300'
+                                        }`}
+                                      >
+                                        Closed at loss
+                                      </button>
+                                    </div>
+                                    <label className="block text-[10px] uppercase tracking-wide text-gray-400">Exact $ result</label>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={currentTrade.breakeven_result_usd ?? 0}
+                                      onChange={(e) => {
+                                        const value = parseFloat(e.target.value) || 0;
+                                        setEditingTrade({
+                                          ...currentTrade,
+                                          breakeven_result_usd: currentTrade.breakeven_result_usd !== null && currentTrade.breakeven_result_usd < 0
+                                            ? -Math.abs(value)
+                                            : Math.abs(value),
+                                        });
+                                      }}
+                                      className="w-full px-2 py-1 bg-slate-700 border border-slate-500 rounded text-xs text-white"
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             );
                           })() : (
                             <span 

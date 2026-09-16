@@ -1,7 +1,6 @@
 import { createClient } from '@libsql/client';
 import { calculateTradeStats, StatsFilters } from './stats';
 
-// Initialize Turso client
 const tursoUrl = process.env.TURSO_DATABASE_URL;
 const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 
@@ -14,26 +13,34 @@ const db = createClient({
   authToken: tursoAuthToken,
 });
 
-// Initialize database schema once before serving any database operation.
-const schemaReady = db.execute(`
-  CREATE TABLE IF NOT EXISTS trades (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    pair TEXT NOT NULL,
-    direction TEXT NOT NULL,
-    entry_price REAL NOT NULL,
-    stop_loss_price REAL NOT NULL,
-    lot_size REAL NOT NULL,
-    risk_usd REAL NOT NULL,
-    tp_price REAL,
-    reward_usd REAL,
-    notes TEXT,
-    outcome TEXT,
-    close_price REAL,
-    rate_used REAL,
-    rate_used_display TEXT
-  );
-`);
+const schemaReady = (async () => {
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS trades (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      pair TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      entry_price REAL NOT NULL,
+      stop_loss_price REAL NOT NULL,
+      lot_size REAL NOT NULL,
+      risk_usd REAL NOT NULL,
+      tp_price REAL,
+      reward_usd REAL,
+      notes TEXT,
+      outcome TEXT,
+      breakeven_result_usd REAL,
+      close_price REAL,
+      rate_used REAL,
+      rate_used_display TEXT
+    );
+  `);
+
+  try {
+    await db.execute('ALTER TABLE trades ADD COLUMN breakeven_result_usd REAL');
+  } catch {
+    // Ignore duplicate-column errors when upgrading an existing database.
+  }
+})();
 
 export interface Trade {
   id?: number;
@@ -48,6 +55,7 @@ export interface Trade {
   reward_usd?: number;
   notes?: string;
   outcome?: 'win' | 'loss' | 'breakeven' | 'open';
+  breakeven_result_usd?: number | null;
   close_price?: number;
   rate_used?: number;
   rate_used_display?: string;
@@ -55,10 +63,14 @@ export interface Trade {
 
 export async function saveTrade(trade: Trade): Promise<Trade> {
   await schemaReady;
+
   const result = await db.execute({
     sql: `
-      INSERT INTO trades (pair, direction, entry_price, stop_loss_price, lot_size, risk_usd, tp_price, reward_usd, notes, outcome, close_price, rate_used, rate_used_display)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO trades (
+        pair, direction, entry_price, stop_loss_price, lot_size, risk_usd,
+        tp_price, reward_usd, notes, outcome, breakeven_result_usd,
+        close_price, rate_used, rate_used_display
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
       trade.pair,
@@ -67,16 +79,17 @@ export async function saveTrade(trade: Trade): Promise<Trade> {
       trade.stop_loss_price,
       trade.lot_size,
       trade.risk_usd,
-      trade.tp_price || null,
-      trade.reward_usd || null,
-      trade.notes || null,
-      trade.outcome || null,
-      trade.close_price || null,
-      trade.rate_used || null,
-      trade.rate_used_display || null
-    ]
+      trade.tp_price ?? null,
+      trade.reward_usd ?? null,
+      trade.notes ?? null,
+      trade.outcome ?? null,
+      trade.breakeven_result_usd ?? null,
+      trade.close_price ?? null,
+      trade.rate_used ?? null,
+      trade.rate_used_display ?? null,
+    ],
   });
-  
+
   return { ...trade, id: Number(result.lastInsertRowid ?? 0) };
 }
 
@@ -87,46 +100,50 @@ export async function getTrades(filters?: {
   endDate?: string;
 }): Promise<Trade[]> {
   await schemaReady;
+
   let query = 'SELECT * FROM trades WHERE 1=1';
   const params: any[] = [];
-  
+
   if (filters?.pair) {
     query += ' AND pair = ?';
     params.push(filters.pair);
   }
-  
+
   if (filters?.outcome) {
     query += ' AND outcome = ?';
     params.push(filters.outcome);
   }
-  
+
   if (filters?.startDate) {
     query += ' AND timestamp >= ?';
     params.push(filters.startDate);
   }
-  
+
   if (filters?.endDate) {
     query += ' AND timestamp <= ?';
     params.push(filters.endDate);
   }
-  
+
   query += ' ORDER BY timestamp DESC';
-  
+
   const result = await db.execute({ sql: query, args: params });
   return result.rows as unknown as Trade[];
 }
 
 export async function updateTrade(id: number, updates: Partial<Trade>): Promise<void> {
   await schemaReady;
-  const fields = Object.keys(updates).filter(key => key !== 'id');
+  const fields = Object.keys(updates).filter(
+    (key) => key !== 'id' && (updates as Record<string, unknown>)[key] !== undefined
+  );
+
   if (fields.length === 0) return;
-  
-  const setClause = fields.map(f => `${f} = ?`).join(', ');
-  const values = fields.map(f => (updates as any)[f]);
-  
+
+  const setClause = fields.map((field) => `${field} = ?`).join(', ');
+  const values = fields.map((field) => (updates as Record<string, any>)[field]);
+
   await db.execute({
     sql: `UPDATE trades SET ${setClause} WHERE id = ?`,
-    args: [...values, id]
+    args: [...values, id],
   });
 }
 

@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       reward_usd: trade.reward_usd,
       notes: trade.notes,
       outcome: trade.outcome,
+      breakeven_result_usd: trade.breakeven_result_usd,
       close_price: trade.close_price,
       rate_used: trade.rate_used,
       rate_used_display: trade.rate_used_display,
