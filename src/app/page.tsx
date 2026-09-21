@@ -702,9 +702,10 @@ export default function Home() {
                                       value={currentTrade.breakeven_result_usd ?? 0}
                                       onChange={(e) => {
                                         const value = parseFloat(e.target.value) || 0;
+                                        const currentValue = currentTrade.breakeven_result_usd ?? 0;
                                         setEditingTrade({
                                           ...currentTrade,
-                                          breakeven_result_usd: currentTrade.breakeven_result_usd !== null && currentTrade.breakeven_result_usd < 0
+                                          breakeven_result_usd: currentValue < 0
                                             ? -Math.abs(value)
                                             : Math.abs(value),
                                         });
