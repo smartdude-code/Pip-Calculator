@@ -230,7 +230,7 @@ export default function TradeLog() {
                 <div className="text-2xl font-bold text-green-600">{stats.winRate}%</div>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-sm text-gray-600">Total Risked</div>
+                <div className="text-sm text-gray-600">Total Lost</div>
                 <div className="text-2xl font-bold text-purple-600">${stats.totalRisked.toFixed(2)}</div>
               </div>
               <div className="bg-amber-50 p-4 rounded-lg">

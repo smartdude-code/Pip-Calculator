@@ -25,7 +25,7 @@ describe('calculateTradeStats', () => {
     expect(stats.completedTrades).toBe(3);
     expect(stats.wins).toBe(0);
     expect(stats.winRate).toBe('0.0');
-    expect(stats.totalRisked).toBe(275);
+    expect(stats.totalRisked).toBe(150);
     expect(stats.totalResult).toBe(-100);
     expect(stats.netResult).toBe(-100);
     expect(stats.avgR).toBe('-0.50');
@@ -54,7 +54,7 @@ describe('calculateTradeStats', () => {
 
     expect(stats.totalTrades).toBe(2);
     expect(stats.completedTrades).toBe(1);
-    expect(stats.totalRisked).toBe(200);
+    expect(stats.totalRisked).toBe(0);
     expect(stats.totalResult).toBe(200);
     expect(stats.avgR).toBe('2.00');
   });

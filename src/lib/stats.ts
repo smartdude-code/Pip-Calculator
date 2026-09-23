@@ -24,13 +24,17 @@ export function calculateTradeStats(trades: Trade[], filters: StatsFilters = {})
   const wins = completedTrades.filter((trade) => normalizeOutcome(trade.outcome) === 'win').length;
   const totalResult = completedTrades.reduce((sum, trade) => sum + getTradeResultValue(trade), 0);
   const totalR = completedTrades.reduce((sum, trade) => sum + getTradeRValue(trade), 0);
+  const totalLost = filteredTrades.reduce((sum, trade) => {
+    if (normalizeOutcome(trade.outcome) !== 'loss') return sum;
+    return sum + Number(trade.risk_usd || 0);
+  }, 0);
 
   return {
     totalTrades: filteredTrades.length,
     completedTrades: completedTrades.length,
     wins,
     winRate: (completedTrades.length > 0 ? (wins / completedTrades.length) * 100 : 0).toFixed(1),
-    totalRisked: filteredTrades.reduce((sum, trade) => sum + trade.risk_usd, 0),
+    totalRisked: totalLost,
     totalWins: completedTrades.reduce((sum, trade) => sum + (normalizeOutcome(trade.outcome) === 'win' ? (trade.reward_usd || 0) : 0), 0),
     totalLosses: completedTrades.reduce((sum, trade) => sum + (normalizeOutcome(trade.outcome) === 'loss' ? -trade.risk_usd : 0), 0),
     totalResult,

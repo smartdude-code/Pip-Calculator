@@ -570,7 +570,7 @@ export default function Home() {
                   <div className="text-lg font-bold text-sky-400">{stats.avgR}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Total $ Risked</div>
+                  <div className="text-xs text-gray-400">Total Lost</div>
                   <div className="text-lg font-bold text-amber-400">${stats.totalRisked.toFixed(2)}</div>
                 </div>
                 <div>
