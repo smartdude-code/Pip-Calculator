@@ -122,6 +122,26 @@ describe('calculatePositionSize', () => {
       expect(result.hasApproximatePipValue).toBe(false);
     });
 
+    it('should calculate EUR/GBP correctly using the live GBP/USD rate', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        json: async () => ({ rates: { USD: 1.25 } }),
+      });
+
+      const result = await calculatePositionSize({
+        pair: 'EUR/GBP',
+        direction: 'buy',
+        entryPrice: 0.8500,
+        stopLossPrice: 0.8450,
+        riskUsd: 100,
+      });
+
+      expect(result.stopDistancePips).toBe(50);
+      expect(result.recommendedLotSize).toBeCloseTo(0.16);
+      expect(result.actualRiskUsd).toBe(100);
+      expect(result.rateUsed).toBe(1.25);
+      expect(result.rateUsedDisplay).toBe('GBP/USD = 1.25');
+    });
+
     it('should calculate GBP/USD correctly (4th decimal, $10 per pip)', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         json: async () => ({ rates: {} }),
@@ -425,14 +445,15 @@ describe('formatLotSize', () => {
   });
 });
 describe('INSTRUMENTS constant', () => {
-  it('should have nine instruments including the seven major FX pairs', () => {
-    expect(INSTRUMENTS.length).toBe(9);
+  it('should have ten instruments including the seven major FX pairs', () => {
+    expect(INSTRUMENTS.length).toBe(10);
   });
 
   it('should have required instruments', () => {
     const pairs = INSTRUMENTS.map(i => i.pair);
     expect(pairs).toContain('EUR/USD');
     expect(pairs).toContain('GBP/USD');
+    expect(pairs).toContain('EUR/GBP');
     expect(pairs).toContain('AUD/USD');
     expect(pairs).toContain('NZD/USD');
     expect(pairs).toContain('USD/CAD');
@@ -442,13 +463,15 @@ describe('INSTRUMENTS constant', () => {
     expect(pairs).toContain('XAU/USD');
   });
 
-  it('should mark USD/CAD, USD/CHF, USD/JPY, GBP/JPY as requiring live rates', () => {
+  it('should mark EUR/GBP, USD/CAD, USD/CHF, USD/JPY, GBP/JPY as requiring live rates', () => {
+    const eurGbp = INSTRUMENTS.find(i => i.pair === 'EUR/GBP');
     const usdCad = INSTRUMENTS.find(i => i.pair === 'USD/CAD');
     const usdChf = INSTRUMENTS.find(i => i.pair === 'USD/CHF');
     const usdJpy = INSTRUMENTS.find(i => i.pair === 'USD/JPY');
     const gbpJpy = INSTRUMENTS.find(i => i.pair === 'GBP/JPY');
 
     expect(usdCad?.requiresLiveRate).toBe(true);
+    expect(eurGbp?.requiresLiveRate).toBe(true);
     expect(usdChf?.requiresLiveRate).toBe(true);
     expect(usdJpy?.requiresLiveRate).toBe(true);
     expect(gbpJpy?.requiresLiveRate).toBe(true);

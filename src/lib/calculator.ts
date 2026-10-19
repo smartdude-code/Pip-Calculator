@@ -9,6 +9,7 @@ export interface Instrument {
 
 export const INSTRUMENTS: Instrument[] = [
   { pair: 'EUR/USD', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
+  { pair: 'EUR/GBP', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'GBP-USD' },
   { pair: 'GBP/USD', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
   { pair: 'AUD/USD', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
   { pair: 'NZD/USD', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
@@ -96,7 +97,13 @@ export async function calculatePositionSize(input: CalculatorInput): Promise<Cal
   if (instrument.requiresLiveRate && instrument.ratePair) {
     const [from, to] = instrument.ratePair.split('-');
     
-    if (input.pair === 'USD/CAD') {
+    if (input.pair === 'EUR/GBP') {
+      // EUR/GBP: pip value in USD = £10 × current GBP/USD rate
+      const gbpUsdRate = await getExchangeRate('GBP', 'USD');
+      pipValuePerLot = 10 * gbpUsdRate;
+      rateUsed = gbpUsdRate;
+      rateUsedDisplay = `GBP/USD = ${gbpUsdRate.toFixed(2)}`;
+    } else if (input.pair === 'USD/CAD') {
       // USD/CAD: pip value (USD) = $10 ÷ current USD/CAD rate
       const usdCadRate = await getExchangeRate('USD', 'CAD');
       pipValuePerLot = 10 / usdCadRate;
