@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Trade } from '@/lib/db';
-import { INSTRUMENTS } from '@/lib/calculator';
+import { formatLotSize, INSTRUMENTS } from '@/lib/calculator';
 
 export default function TradeLog() {
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -349,7 +349,7 @@ export default function TradeLog() {
                         {trade.stop_loss_price.toFixed(4)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {trade.lot_size.toFixed(2)}
+                        {formatLotSize(trade.lot_size)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                         ${trade.risk_usd.toFixed(2)}

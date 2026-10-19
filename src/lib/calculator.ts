@@ -40,6 +40,13 @@ export interface CalculatorOutput {
   rateUsedDisplay?: string;
 }
 
+export function formatLotSize(lotSize: number): string {
+  return lotSize.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 10,
+  });
+}
+
 // Rate cache to avoid repeated API calls
 let rateCache: Record<string, { rate: number; timestamp: number }> = {};
 const CACHE_DURATION = parseInt(process.env.EXCHANGE_RATE_CACHE_DURATION || '300000'); // 5 minutes default
@@ -137,14 +144,8 @@ export async function calculatePositionSize(input: CalculatorInput): Promise<Cal
 
   // Calculate raw lot size
   const rawLotSize = input.riskUsd / (stopDistancePips * pipValuePerLot);
-
-  // Round DOWN to nearest 0.01 (never round up to avoid exceeding risk)
-  // First round to 4 decimal places to handle floating point precision, then round down
-  const roundedRaw = Math.round(rawLotSize * 10000) / 10000;
-  const recommendedLotSize = Math.floor(Math.max(0, roundedRaw) * 100) / 100;
-
-  // Calculate actual risk at rounded lot size
-  const actualRiskUsd = recommendedLotSize * stopDistancePips * pipValuePerLot;
+  const recommendedLotSize = Math.max(0, rawLotSize);
+  const actualRiskUsd = recommendedLotSize > 0 ? input.riskUsd : 0;
 
   // Calculate TP and reward if reward ratio is provided
   let suggestedTpPrice: number | undefined;

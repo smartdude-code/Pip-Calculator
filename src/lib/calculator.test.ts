@@ -1,4 +1,4 @@
-import { calculatePositionSize, INSTRUMENTS } from './calculator';
+import { calculatePositionSize, formatLotSize, INSTRUMENTS } from './calculator';
 
 // Mock the global fetch for API calls
 global.fetch = jest.fn();
@@ -8,8 +8,8 @@ describe('calculatePositionSize', () => {
     jest.clearAllMocks();
   });
 
-  describe('lot size rounding down rule', () => {
-    it('should round lot size DOWN to nearest 0.01', async () => {
+  describe('exact risk lot size calculation', () => {
+    it('should calculate the lot size needed to use the full risk amount', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         json: async () => ({ rates: {} }),
       });
@@ -23,13 +23,11 @@ describe('calculatePositionSize', () => {
       });
 
       // EUR/USD: 50 pips * $10/pip = $500 per lot
-      // Raw lot size = $100 / $500 = 0.2 lots
-      // After floating point rounding: exactly 0.2 lots
       expect(result.recommendedLotSize).toBe(0.2);
-      expect(result.actualRiskUsd).toBeLessThanOrEqual(100);
+      expect(result.actualRiskUsd).toBe(100);
     });
 
-    it('should round DOWN when lot size is not exact 0.01 multiple', async () => {
+    it('should preserve lot size precision beyond two decimal places', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         json: async () => ({ rates: {} }),
       });
@@ -39,17 +37,33 @@ describe('calculatePositionSize', () => {
         direction: 'buy',
         entryPrice: 1.1000,
         stopLossPrice: 1.0990,
-        riskUsd: 15,
+        riskUsd: 15.25,
       });
 
-      // EUR/USD: 10 pips * $10/pip = $100 per lot
-      // Raw lot size = $15 / $100 = 0.15 lots
-      // After floating point rounding: exactly 0.15 lots
-      expect(result.recommendedLotSize).toBe(0.15);
-      expect(result.actualRiskUsd).toBeLessThanOrEqual(15);
+      // EUR/USD: 10 pips * $10/pip = $100 per lot; $15.25 risk needs 0.1525 lots.
+      expect(result.recommendedLotSize).toBe(0.1525);
+      expect(result.actualRiskUsd).toBe(15.25);
     });
 
-    it('should never round UP to avoid exceeding risk', async () => {
+    it('should use the full requested risk for a fractional lot size', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        json: async () => ({ rates: {} }),
+      });
+
+      const result = await calculatePositionSize({
+        pair: 'EUR/USD',
+        direction: 'buy',
+        entryPrice: 1.1000,
+        stopLossPrice: 1.0991,
+        riskUsd: 13.37,
+      });
+
+      expect(result.recommendedLotSize).toBeCloseTo(13.37 / 90, 10);
+      expect(result.recommendedLotSize).not.toBe(Math.floor((13.37 / 90) * 100) / 100);
+      expect(result.actualRiskUsd).toBe(13.37);
+    });
+
+    it('should use the exact lot size when risk is a precise hundredth multiple', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         json: async () => ({ rates: {} }),
       });
@@ -64,9 +78,8 @@ describe('calculatePositionSize', () => {
 
       // EUR/USD: 50 pips * $10/pip = $500 per lot
       // Raw lot size = $95 / $500 = 0.19 lots
-      // After floating point rounding: exactly 0.19 lots
       expect(result.recommendedLotSize).toBe(0.19);
-      expect(result.actualRiskUsd).toBeLessThanOrEqual(95);
+      expect(result.actualRiskUsd).toBe(95);
     });
 
     it('should handle very small lot sizes', async () => {
@@ -84,9 +97,8 @@ describe('calculatePositionSize', () => {
 
       // EUR/USD: 5 pips * $10/pip = $50 per lot
       // Raw lot size = $5 / $50 = 0.1 lots
-      // After floating point rounding: exactly 0.1 lots
       expect(result.recommendedLotSize).toBe(0.1);
-      expect(result.actualRiskUsd).toBeLessThanOrEqual(5);
+      expect(result.actualRiskUsd).toBe(5);
     });
   });
 
@@ -182,12 +194,9 @@ describe('calculatePositionSize', () => {
       });
 
       expect(result.stopDistancePips).toBeCloseTo(50);
-      // pip value = $10 / 1.36 = $7.35 per pip
-      // 50 pips * $7.35/pip = $367.65 per lot
-      // Raw lot size = $100 / $367.65 = 0.272 lots
-      // Round down to 0.27 lots
-      expect(result.recommendedLotSize).toBeCloseTo(0.27);
-      expect(result.actualRiskUsd).toBeLessThanOrEqual(100);
+      // pip value = $10 / 1.36 per pip
+      expect(result.recommendedLotSize).toBeCloseTo(100 / (50 * (10 / 1.36)), 10);
+      expect(result.actualRiskUsd).toBe(100);
       expect(result.hasApproximatePipValue).toBe(false);
       expect(result.rateUsed).toBe(1.36);
       expect(result.rateUsedDisplay).toBe('USD/CAD = 1.36');
@@ -208,7 +217,7 @@ describe('calculatePositionSize', () => {
 
       expect(result.stopDistancePips).toBeCloseTo(50);
       expect(result.recommendedLotSize).toBeCloseTo(0.18);
-      expect(result.actualRiskUsd).toBeLessThanOrEqual(100);
+      expect(result.actualRiskUsd).toBe(100);
       expect(result.hasApproximatePipValue).toBe(false);
       expect(result.rateUsed).toBe(0.90);
       expect(result.rateUsedDisplay).toBe('USD/CHF = 0.90');
@@ -232,9 +241,8 @@ describe('calculatePositionSize', () => {
       // pip value = (0.01 / 147.0) * 100000 = $6.80 per pip
       // 50 pips * $6.80/pip = $340 per lot
       // Raw lot size = $100 / $340 = 0.294 lots
-      // Round down to 0.29 lots
-      expect(result.recommendedLotSize).toBeCloseTo(0.29);
-      expect(result.actualRiskUsd).toBeLessThanOrEqual(100);
+      expect(result.recommendedLotSize).toBeCloseTo(0.294, 3);
+      expect(result.actualRiskUsd).toBe(100);
       expect(result.hasApproximatePipValue).toBe(false);
       expect(result.rateUsed).toBe(147.0);
       expect(result.rateUsedDisplay).toBe('USD/JPY = 147.00');
@@ -255,8 +263,8 @@ describe('calculatePositionSize', () => {
       });
 
       expect(result.stopDistancePips).toBe(50);
-      expect(result.recommendedLotSize).toBeCloseTo(0.29);
-      expect(result.actualRiskUsd).toBeLessThanOrEqual(100);
+      expect(result.recommendedLotSize).toBeCloseTo(0.294, 3);
+      expect(result.actualRiskUsd).toBe(100);
       expect(result.hasApproximatePipValue).toBe(false);
       expect(result.rateUsed).toBe(147.0);
       expect(result.rateUsedDisplay).toBe('USD/JPY = 147.00');
@@ -277,10 +285,8 @@ describe('calculatePositionSize', () => {
 
       expect(result.stopDistancePips).toBe(500); // 5.00 * 100 = 500 pips (since 2nd decimal)
       // 500 pips * $10/pip = $5000 per lot
-      // Raw lot size = $100 / $5000 = 0.02 lots
-      // After floating point rounding: exactly 0.02 lots
       expect(result.recommendedLotSize).toBe(0.02);
-      expect(result.actualRiskUsd).toBeLessThanOrEqual(100);
+      expect(result.actualRiskUsd).toBe(100);
       expect(result.hasApproximatePipValue).toBe(false);
     });
   });
@@ -409,6 +415,15 @@ describe('calculatePositionSize', () => {
   });
 });
 
+describe('formatLotSize', () => {
+  it('shows enough precision for fractional lot sizes', () => {
+    expect(formatLotSize(13.37 / 90)).toBe('0.1485555556');
+  });
+
+  it('keeps two decimal places when the lot size is exact to hundredths', () => {
+    expect(formatLotSize(0.2)).toBe('0.20');
+  });
+});
 describe('INSTRUMENTS constant', () => {
   it('should have nine instruments including the seven major FX pairs', () => {
     expect(INSTRUMENTS.length).toBe(9);

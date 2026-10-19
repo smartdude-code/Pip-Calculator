@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { calculatePositionSize, INSTRUMENTS, CalculatorInput, CalculatorOutput } from '@/lib/calculator';
+import { calculatePositionSize, formatLotSize, INSTRUMENTS, CalculatorInput, CalculatorOutput } from '@/lib/calculator';
 import { Trade } from '@/lib/db';
 import { calculateTradeStats } from '@/lib/stats';
 
@@ -422,7 +422,7 @@ export default function Home() {
                           Entry {item.entryPrice.toFixed(4)} • SL {item.stopLossPrice.toFixed(4)} • Risk ${item.riskUsd.toFixed(2)}
                         </div>
                         <div className="mt-1 text-xs text-amber-300">
-                          Lot {item.recommendedLotSize.toFixed(2)} • Actual Risk ${item.actualRiskUsd.toFixed(2)}
+                          Lot {formatLotSize(item.recommendedLotSize)} • Actual Risk ${item.actualRiskUsd.toFixed(2)}
                         </div>
                       </div>
                     ))
@@ -449,7 +449,7 @@ export default function Home() {
                   
                   <div className="flex justify-between items-center py-1 border-b border-gray-600">
                     <span className="text-gray-300">Recommended Lot Size</span>
-                    <span className="font-semibold text-amber-400">{result.recommendedLotSize.toFixed(2)} lots</span>
+                    <span className="font-semibold text-amber-400">{formatLotSize(result.recommendedLotSize)} lots</span>
                   </div>
                   
                   <div className="flex justify-between items-center py-1 border-b border-gray-600">
@@ -649,7 +649,7 @@ export default function Home() {
                         </td>
                         <td className="py-2 px-2 text-gray-300">{trade.entry_price.toFixed(4)}</td>
                         <td className="py-2 px-2 text-gray-300">{trade.stop_loss_price.toFixed(4)}</td>
-                        <td className="py-2 px-2 text-gray-300">{trade.lot_size.toFixed(2)}</td>
+                        <td className="py-2 px-2 text-gray-300">{formatLotSize(trade.lot_size)}</td>
                         <td className="py-2 px-2 text-gray-300">${trade.risk_usd.toFixed(2)}</td>
                         <td className="py-2 px-2 text-gray-300">{trade.tp_price ? trade.tp_price.toFixed(4) : '-'}</td>
                         <td className="py-2 px-2">
