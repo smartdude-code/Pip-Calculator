@@ -148,6 +148,25 @@ describe('calculatePositionSize', () => {
       expect(result.hasApproximatePipValue).toBe(false);
     });
 
+    it('should calculate NZD/USD correctly (4th decimal, $10 per pip)', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        json: async () => ({ rates: {} }),
+      });
+
+      const result = await calculatePositionSize({
+        pair: 'NZD/USD',
+        direction: 'buy',
+        entryPrice: 0.6500,
+        stopLossPrice: 0.6450,
+        riskUsd: 100,
+      });
+
+      expect(result.stopDistancePips).toBeCloseTo(50);
+      expect(result.recommendedLotSize).toBe(0.2);
+      expect(result.actualRiskUsd).toBeCloseTo(100);
+      expect(result.hasApproximatePipValue).toBe(false);
+    });
+
     it('should calculate USD/CAD correctly with live rate', async () => {
       // Mock USD/CAD rate of 1.36
       (global.fetch as jest.Mock).mockResolvedValue({
@@ -172,6 +191,27 @@ describe('calculatePositionSize', () => {
       expect(result.hasApproximatePipValue).toBe(false);
       expect(result.rateUsed).toBe(1.36);
       expect(result.rateUsedDisplay).toBe('USD/CAD = 1.36');
+    });
+
+    it('should calculate USD/CHF correctly with live rate', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        json: async () => ({ rates: { CHF: 0.90 } }),
+      });
+
+      const result = await calculatePositionSize({
+        pair: 'USD/CHF',
+        direction: 'buy',
+        entryPrice: 0.9000,
+        stopLossPrice: 0.8950,
+        riskUsd: 100,
+      });
+
+      expect(result.stopDistancePips).toBeCloseTo(50);
+      expect(result.recommendedLotSize).toBeCloseTo(0.18);
+      expect(result.actualRiskUsd).toBeLessThanOrEqual(100);
+      expect(result.hasApproximatePipValue).toBe(false);
+      expect(result.rateUsed).toBe(0.90);
+      expect(result.rateUsedDisplay).toBe('USD/CHF = 0.90');
     });
 
     it('should calculate USD/JPY correctly with live rate', async () => {
@@ -370,8 +410,8 @@ describe('calculatePositionSize', () => {
 });
 
 describe('INSTRUMENTS constant', () => {
-  it('should have exactly 7 instruments', () => {
-    expect(INSTRUMENTS.length).toBe(7);
+  it('should have nine instruments including the seven major FX pairs', () => {
+    expect(INSTRUMENTS.length).toBe(9);
   });
 
   it('should have required instruments', () => {
@@ -379,31 +419,37 @@ describe('INSTRUMENTS constant', () => {
     expect(pairs).toContain('EUR/USD');
     expect(pairs).toContain('GBP/USD');
     expect(pairs).toContain('AUD/USD');
+    expect(pairs).toContain('NZD/USD');
     expect(pairs).toContain('USD/CAD');
+    expect(pairs).toContain('USD/CHF');
     expect(pairs).toContain('USD/JPY');
     expect(pairs).toContain('GBP/JPY');
     expect(pairs).toContain('XAU/USD');
   });
 
-  it('should mark USD/CAD, USD/JPY, GBP/JPY as requiring live rates', () => {
+  it('should mark USD/CAD, USD/CHF, USD/JPY, GBP/JPY as requiring live rates', () => {
     const usdCad = INSTRUMENTS.find(i => i.pair === 'USD/CAD');
+    const usdChf = INSTRUMENTS.find(i => i.pair === 'USD/CHF');
     const usdJpy = INSTRUMENTS.find(i => i.pair === 'USD/JPY');
     const gbpJpy = INSTRUMENTS.find(i => i.pair === 'GBP/JPY');
 
     expect(usdCad?.requiresLiveRate).toBe(true);
+    expect(usdChf?.requiresLiveRate).toBe(true);
     expect(usdJpy?.requiresLiveRate).toBe(true);
     expect(gbpJpy?.requiresLiveRate).toBe(true);
   });
 
-  it('should not mark EUR/USD, GBP/USD, AUD/USD, XAU/USD as requiring live rates', () => {
+  it('should not mark EUR/USD, GBP/USD, AUD/USD, NZD/USD, XAU/USD as requiring live rates', () => {
     const eurusd = INSTRUMENTS.find(i => i.pair === 'EUR/USD');
     const gbpusd = INSTRUMENTS.find(i => i.pair === 'GBP/USD');
     const audusd = INSTRUMENTS.find(i => i.pair === 'AUD/USD');
+    const nzdusd = INSTRUMENTS.find(i => i.pair === 'NZD/USD');
     const xauusd = INSTRUMENTS.find(i => i.pair === 'XAU/USD');
 
     expect(eurusd?.requiresLiveRate).toBe(false);
     expect(gbpusd?.requiresLiveRate).toBe(false);
     expect(audusd?.requiresLiveRate).toBe(false);
+    expect(nzdusd?.requiresLiveRate).toBe(false);
     expect(xauusd?.requiresLiveRate).toBe(false);
   });
 });

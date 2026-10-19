@@ -11,7 +11,9 @@ export const INSTRUMENTS: Instrument[] = [
   { pair: 'EUR/USD', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
   { pair: 'GBP/USD', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
   { pair: 'AUD/USD', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
+  { pair: 'NZD/USD', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
   { pair: 'USD/CAD', pipDecimalPlace: 4, pipValuePerLot: 7.40, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-CAD' },
+  { pair: 'USD/CHF', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-CHF' },
   { pair: 'USD/JPY', pipDecimalPlace: 2, pipValuePerLot: 7.50, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-JPY' },
   { pair: 'GBP/JPY', pipDecimalPlace: 2, pipValuePerLot: 7.50, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-JPY' },
   { pair: 'XAU/USD', pipDecimalPlace: 2, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
@@ -93,6 +95,12 @@ export async function calculatePositionSize(input: CalculatorInput): Promise<Cal
       pipValuePerLot = 10 / usdCadRate;
       rateUsed = usdCadRate;
       rateUsedDisplay = `USD/CAD = ${usdCadRate.toFixed(2)}`;
+    } else if (input.pair === 'USD/CHF') {
+      // USD/CHF: pip value (USD) = $10 ÷ current USD/CHF rate
+      const usdChfRate = await getExchangeRate('USD', 'CHF');
+      pipValuePerLot = 10 / usdChfRate;
+      rateUsed = usdChfRate;
+      rateUsedDisplay = `USD/CHF = ${usdChfRate.toFixed(2)}`;
     } else if (input.pair === 'USD/JPY') {
       // USD/JPY: pip value (USD) = (0.01 ÷ current USD/JPY rate) × 100,000
       const usdJpyRate = await getExchangeRate('USD', 'JPY');
