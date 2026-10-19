@@ -6,6 +6,8 @@ import { calculatePositionSize, formatLotSize, INSTRUMENTS, CalculatorInput, Cal
 import { Trade } from '@/lib/db';
 import { calculateTradeStats } from '@/lib/stats';
 
+const RECENT_CALCULATIONS_LIMIT = 2;
+
 export default function Home() {
   const [formData, setFormData] = useState<CalculatorInput>({
     pair: 'EUR/USD',
@@ -46,7 +48,7 @@ export default function Home() {
     try {
       const saved = localStorage.getItem('recent-calculations');
       if (saved) {
-        setRecentCalculations(JSON.parse(saved));
+        setRecentCalculations(JSON.parse(saved).slice(0, RECENT_CALCULATIONS_LIMIT));
       }
     } catch (error) {
       console.error('Unable to load recent calculations:', error);
@@ -88,7 +90,7 @@ export default function Home() {
       timestamp: new Date().toISOString(),
     };
 
-    setRecentCalculations((current) => [snapshot, ...current].slice(0, 8));
+    setRecentCalculations((current) => [snapshot, ...current].slice(0, RECENT_CALCULATIONS_LIMIT));
   };
 
   const handleCalculate = async () => {
