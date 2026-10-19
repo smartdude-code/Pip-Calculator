@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Smarts Position sizing calculator",
-  description: "Trading calculator and trade log",
+  title: "Smart Trader | Position Sizing",
+  description: "A modern trading workspace for position sizing and trade tracking.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

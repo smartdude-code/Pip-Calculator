@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { calculatePositionSize, INSTRUMENTS, CalculatorInput, CalculatorOutput } from '@/lib/calculator';
 import { Trade } from '@/lib/db';
 import { calculateTradeStats } from '@/lib/stats';
@@ -269,14 +270,22 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <div className="bg-slate-800 border-b border-slate-600 py-4 px-6">
-        <h1 className="text-2xl font-bold text-center">Sir Smart's position sizing</h1>
-      </div>
+    <div className="min-h-screen bg-slate-900 text-white trading-dashboard">
+      <header className="trading-topbar">
+        <Link className="brand-lockup" href="/" aria-label="Smart Trader home">
+          <span className="brand-mark">S</span>
+          <span>SMART<span>TRADER</span></span>
+        </Link>
+        <div className="workspace-indicator">TRADING WORKSPACE</div>
+        <nav className="topbar-nav" aria-label="Main navigation">
+          <Link href="/" aria-current="page">Calculator</Link>
+          <Link href="/log">Trade log</Link>
+        </nav>
+      </header>
 
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="space-y-6">
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-500 max-w-2xl mx-auto">
+      <main className="terminal-shell">
+        <div className="terminal-layout">
+          <section className="bg-slate-800 rounded-lg p-6 border border-slate-500 calculator-panel">
             <h2 className="text-xl font-semibold mb-4 text-blue-400">Calculator</h2>
             
             <div className="space-y-4">
@@ -496,9 +505,9 @@ export default function Home() {
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-500">
+          <section className="bg-slate-800 rounded-lg p-6 border border-slate-500 trades-panel">
             <h2 className="text-xl font-semibold mb-4 text-sky-400">Trade Log</h2>
 
             <div className="grid grid-cols-4 gap-2 mb-4">
@@ -815,9 +824,9 @@ export default function Home() {
                 </div>
               </div>
             )}
-          </div>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Trade } from '@/lib/db';
 import { INSTRUMENTS } from '@/lib/calculator';
 
@@ -125,27 +126,37 @@ export default function TradeLog() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center trade-log-page">
         <div className="text-gray-600">Loading trades...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Trade Log</h1>
-          <a
-            href="/"
-            className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Back to Calculator
-          </a>
-        </div>
+    <div className="trade-log-site">
+      <header className="trading-topbar">
+        <Link className="brand-lockup" href="/" aria-label="Smart Trader home">
+          <span className="brand-mark">S</span>
+          <span>SMART<span>TRADER</span></span>
+        </Link>
+        <div className="workspace-indicator">TRADING WORKSPACE</div>
+        <nav className="topbar-nav" aria-label="Main navigation">
+          <Link href="/">Calculator</Link>
+          <Link href="/log" aria-current="page">Trade log</Link>
+        </nav>
+      </header>
+
+      <main className="min-h-screen bg-gray-50 py-8 px-4 trade-log-page">
+        <div className="max-w-7xl mx-auto trade-log-content">
+          <header className="flex justify-between items-center mb-8 trade-log-header">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Trade Log</h1>
+              <p>Review your history, performance, and open positions.</p>
+            </div>
+          </header>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <section className="bg-white rounded-lg shadow-md p-6 mb-6 trade-log-panel">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
@@ -214,11 +225,11 @@ export default function TradeLog() {
               Clear Filters
             </button>
           </div>
-        </div>
+        </section>
 
         {/* Statistics */}
         {showStats && stats && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <section className="bg-white rounded-lg shadow-md p-6 mb-6 trade-log-panel">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Statistics</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-blue-50 p-4 rounded-lg">
@@ -246,11 +257,11 @@ export default function TradeLog() {
             >
               Hide Statistics
             </button>
-          </div>
+          </section>
         )}
 
         {/* Trade Table */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <section className="bg-white rounded-lg shadow-md overflow-hidden trade-log-panel">
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead className="bg-gray-50">
@@ -414,9 +425,9 @@ export default function TradeLog() {
               </tbody>
             </table>
           </div>
+        </section>
         </div>
-
-      </div>
+      </main>
     </div>
   );
 }
