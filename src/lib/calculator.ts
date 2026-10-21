@@ -17,6 +17,11 @@ export const INSTRUMENTS: Instrument[] = [
   { pair: 'USD/CHF', pipDecimalPlace: 4, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-CHF' },
   { pair: 'USD/JPY', pipDecimalPlace: 2, pipValuePerLot: 7.50, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-JPY' },
   { pair: 'GBP/JPY', pipDecimalPlace: 2, pipValuePerLot: 7.50, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-JPY' },
+  { pair: 'EUR/JPY', pipDecimalPlace: 2, pipValuePerLot: 7.50, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-JPY' },
+  { pair: 'AUD/JPY', pipDecimalPlace: 2, pipValuePerLot: 7.50, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-JPY' },
+  { pair: 'NZD/JPY', pipDecimalPlace: 2, pipValuePerLot: 7.50, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-JPY' },
+  { pair: 'CHF/JPY', pipDecimalPlace: 2, pipValuePerLot: 7.50, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-JPY' },
+  { pair: 'CAD/JPY', pipDecimalPlace: 2, pipValuePerLot: 7.50, hasApproximatePipValue: false, requiresLiveRate: true, ratePair: 'USD-JPY' },
   { pair: 'XAU/USD', pipDecimalPlace: 2, pipValuePerLot: 10, hasApproximatePipValue: false, requiresLiveRate: false },
 ];
 
@@ -115,15 +120,8 @@ export async function calculatePositionSize(input: CalculatorInput): Promise<Cal
       pipValuePerLot = 10 / usdChfRate;
       rateUsed = usdChfRate;
       rateUsedDisplay = `USD/CHF = ${usdChfRate.toFixed(2)}`;
-    } else if (input.pair === 'USD/JPY') {
-      // USD/JPY: pip value (USD) = (0.01 ÷ current USD/JPY rate) × 100,000
-      const usdJpyRate = await getExchangeRate('USD', 'JPY');
-      pipValuePerLot = (0.01 / usdJpyRate) * 100000;
-      rateUsed = usdJpyRate;
-      rateUsedDisplay = `USD/JPY = ${usdJpyRate.toFixed(2)}`;
-    } else if (input.pair === 'GBP/JPY') {
-      // GBP/JPY: pip value (USD) = (0.01 ÷ current USD/JPY rate) × 100,000
-      // Note: We need USD/JPY rate for GBP/JPY as well since we're calculating USD value
+    } else if (instrument.pair.endsWith('/JPY')) {
+      // JPY-quoted pairs: pip value (USD) = (0.01 ÷ USD/JPY rate) × 100,000
       const usdJpyRate = await getExchangeRate('USD', 'JPY');
       pipValuePerLot = (0.01 / usdJpyRate) * 100000;
       rateUsed = usdJpyRate;
